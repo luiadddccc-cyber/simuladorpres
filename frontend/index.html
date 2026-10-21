@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Presidencial - Centro de Mando</title>
+    <link rel="stylesheet" href="/static/styles/main.css">
+</head>
+<body>
+
+    <div class="login-container" id="loginCard">
+        <h1>🏛️ Academia Presidencial</h1>
+        <p>Introduce tu clave de acceso de Seguridad de Estado</p>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <input type="password" id="passwordInput" placeholder="Contraseña..." required>
+            </div>
+            <button type="submit">Ingresar al Sistema</button>
+        </form>
+        
+        <div id="errorMessage" class="error-message">Contraseña incorrecta. Acceso denegado.</div>
+    </div>
+
+    <div class="dashboard-container" id="dashboardContainer">
+        <header>
+            <h2>🏛️ Centro de Mando Presidencial</h2>
+            <button onclick="logout()" style="width: auto; padding: 0.5rem 1rem; background-color: #f75a68;">Cerrar Sesión</button>
+        </header>
+        <div class="main-layout">
+            <aside>
+                <h3>Módulos de Gobierno</h3>
+                <button class="module-btn" onclick="loadModule(1)">1. Macroeconomía y PYMEs</button>
+                <button class="module-btn" onclick="loadModule(2)">2. Finanzas Públicas</button>
+                <button class="module-btn" onclick="loadModule(3)">3. Escáner de Contratos</button>
+                <button class="module-btn" onclick="loadModule(4)">4. Crisis Históricas</button>
+                <button class="module-btn" onclick="loadModule(5)">5. Psicología Social</button>
+                <button class="module-btn" onclick="loadModule(6)">6. Oratoria de Estado</button>
+                <button class="module-btn" onclick="loadModule(7)">7. Microexpresiones</button>
+                <button class="module-btn" onclick="loadModule(8)">8. Idiomas Extranjeros</button>
+            </aside>
+            <main id="contentArea" style="flex: 1; padding: 2rem; overflow-y: auto;">
+                <div class="card">
+                    <h3>Bienvenido, Señor Presidente</h3>
+                    <p>Seleccione un módulo en el panel izquierdo para iniciar la capacitación ejecutiva o supervise los indicadores macroeconómicos actuales de la nación.</p>
+                    <div class="stats-grid">
+                        <div class="stat-box">Aprobación<br><span id="statApproval">50%</span></div>
+                        <div class="stat-box">Inflación<br><span id="statInflation">4.5%</span></div>
+                        <div class="stat-box">Déficit Fiscal<br><span id="statDeficit">2.0%</span></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/scripts/app.js"></script>
+</body>
+</html>

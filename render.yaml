@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: simulador-presidencial
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port \$PORT
+    envVars:
+      - key: APP_PASSWORD
+        value: futuropres47
+      - key: SECRET_KEY
+        value: futuropres47_secret_key_super_segura
