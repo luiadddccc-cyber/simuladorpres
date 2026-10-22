@@ -1,10 +1,7 @@
 import os
 
-# Definición de la estructura de archivos y contenidos completos del proyecto
 files_content = {
-    # -------------------------------------------------------------------------
-    # 1. BASE DE DATOS Y ESQUEMA
-    # -------------------------------------------------------------------------
+    # 1. ESQUEMA DE BASE DE DATOS
     "backend/base_de_datos/schema.sql": """
 CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,6 +19,7 @@ CREATE TABLE IF NOT EXISTS metricas_presidenciales (
 );
 """,
 
+    # 2. CONEXIÓN A BASE DE DATOS
     "backend/base_de_datos/connection.py": """
 import sqlite3
 import os
@@ -45,11 +43,9 @@ def init_db():
     conn.close()
 """,
 
-    # -------------------------------------------------------------------------
-    # 2. RUTAS DE AUTENTICACIÓN
-    # -------------------------------------------------------------------------
+    # 3. AUTENTICACIÓN
     "backend/rutas/auth.py": """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import sqlite3
 from backend.base_de_datos.connection import get_db
@@ -67,7 +63,6 @@ def register(user: UserAuth, db=Depends(get_db)):
         cursor.execute("INSERT INTO usuarios (usuario, password) VALUES (?, ?)", (user.usuario, user.password))
         db.commit()
         user_id = cursor.lastrowid
-        # Inicializar métricas para el nuevo usuario
         cursor.execute("INSERT INTO metricas_presidenciales (user_id) VALUES (?)", (user_id,))
         db.commit()
         return {"mensaje": "Usuario registrado exitosamente", "user_id": user_id}
@@ -83,7 +78,6 @@ def login(user: UserAuth, db=Depends(get_db)):
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
     
     user_id = row[0]
-    # Verificar que existan sus métricas
     cursor.execute("SELECT user_id FROM metricas_presidenciales WHERE user_id = ?", (user_id,))
     if not cursor.fetchone():
         cursor.execute("INSERT INTO metricas_presidenciales (user_id) VALUES (?)", (user_id,))
@@ -92,9 +86,7 @@ def login(user: UserAuth, db=Depends(get_db)):
     return {"mensaje": "Inicio de sesión exitoso", "token": f"token_presidencial_{user_id}", "user_id": user_id}
 """,
 
-    # -------------------------------------------------------------------------
-    # 3. RUTAS DE SIMULACIÓN Y MÉTRICAS VIVAS
-    # -------------------------------------------------------------------------
+    # 4. SIMULACIÓN Y MÉTRICAS VIVAS
     "backend/rutas/simulation.py": """
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -157,7 +149,6 @@ def aplicar_impacto(decision: OpcionDecision, db=Depends(get_db)):
         db.commit()
         actual = (50.0, 50.0, 50.0, 50.0)
 
-    # Limitar las métricas para que no bajen de 0% ni suban de 100%
     nueva_aprobacion = max(0.0, min(100.0, actual[0] + decision.delta_aprobacion))
     nueva_economia = max(0.0, min(100.0, actual[1] + decision.delta_economia))
     nuevo_congreso = max(0.0, min(100.0, actual[2] + decision.delta_congreso))
@@ -176,14 +167,12 @@ def aplicar_impacto(decision: OpcionDecision, db=Depends(get_db)):
             "aprobacion": nueva_aprobacion,
             "economia": nueva_economia,
             "congreso": nuevo_congreso,
-            "corrupcion": nuevo_corrupcion
+            "corrupcion": nueva_corrupcion
         }
     }
 """,
 
-    # -------------------------------------------------------------------------
-    # 4. APLICACIÓN PRINCIPAL (FASTAPI)
-    # -------------------------------------------------------------------------
+    # 5. APLICACIÓN PRINCIPAL (FASTAPI)
     "backend/app.py": """
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -196,16 +185,13 @@ from backend.rutas.simulation import router as sim_router
 
 app = FastAPI(title="Simulador de Entrenamiento Presidencial")
 
-# Inicializar Base de Datos al arrancar
 @app.on_event("startup")
 def startup_event():
     init_db()
 
-# Incluir Rutas
 app.include_router(auth_router, prefix="/api/auth", tags=["Autenticación"])
 app.include_router(sim_router, prefix="/api/simulation", tags=["Simulación"])
 
-# Servir Frontend
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "../frontend")
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
@@ -214,9 +200,7 @@ def read_root():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 """,
 
-    # -------------------------------------------------------------------------
-    # 5. VISTA FRONTEND (HTML) CON TABLERO HUD DE MÉTRICAS
-    # -------------------------------------------------------------------------
+    # 6. INTERFAZ FRONTEND (HTML) CON HUD Y TARJETAS
     "frontend/index.html": """
 <!DOCTYPE html>
 <html lang="es">
@@ -277,8 +261,23 @@ def read_root():
             </aside>
             <main class="content-area" id="content-area">
                 <div class="card">
-                    <h3>Seleccione un Módulo Presidencial</h3>
-                    <p>Cargue las lecciones interactivas, casos de estudio y simulaciones dinámicas para comenzar.</p>
+                    <h3>Bienvenido, Señor Presidente</h3>
+                    <p>Seleccione un módulo en el panel izquierdo para iniciar la capacitación ejecutiva o supervise los indicadores macroeconómicos actuales de la nación.</p>
+                    <br>
+                    <div class="dashboard-cards-preview">
+                        <div class="preview-card">
+                            <span>Aprobación</span>
+                            <h3 id="prev-aprobacion" style="color: #319795;">50%</h3>
+                        </div>
+                        <div class="preview-card">
+                            <span>Inflación</span>
+                            <h3 style="color: #319795;">4.5%</h3>
+                        </div>
+                        <div class="preview-card">
+                            <span>Déficit Fiscal</span>
+                            <h3 style="color: #319795;">2%</h3>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>
@@ -289,14 +288,11 @@ def read_root():
 </html>
 """,
 
-    # -------------------------------------------------------------------------
-    # 6. ESTILOS CSS CON TEMA OSCURO
-    # -------------------------------------------------------------------------
+    # 7. ESTILOS CSS
     "frontend/estilos/main.css": """
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 body { background-color: #0f1216; color: #e2e8f0; }
 
-/* Autenticación */
 .auth-container { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #0b0d10; }
 .auth-box { background-color: #1a1e24; padding: 40px; border-radius: 8px; border: 1px solid #2a313d; width: 360px; text-align: center; }
 .auth-box h2 { margin-bottom: 20px; color: #319795; }
@@ -308,13 +304,11 @@ button:hover { background-color: #2c7a7b; }
 .btn-secondary:hover { background-color: #2d3748; }
 .error-msg { color: #e53e3e; font-size: 0.85rem; margin-top: 10px; }
 
-/* Dashboard */
 .dashboard-container { padding: 20px; max-width: 1400px; margin: 0 auto; }
 .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid #2a313d; margin-bottom: 15px; }
 .header h1 { color: #319795; font-size: 1.5rem; }
 .btn-logout { background-color: #e53e3e; width: auto; padding: 8px 16px; }
 
-/* HUD de Métricas Presidenciales */
 .hud-container { display: flex; justify-content: space-around; background-color: #1a1e24; border: 1px solid #2a313d; border-radius: 8px; padding: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
 .metric-card { display: flex; flex-direction: column; align-items: center; width: 22%; }
 .metric-label { font-size: 0.85rem; color: #a0aec0; margin-bottom: 6px; }
@@ -322,7 +316,6 @@ button:hover { background-color: #2c7a7b; }
 .progress-bar div { height: 100%; background-color: #319795; transition: width 0.5s ease-in-out; }
 .metric-value { font-size: 0.9rem; font-weight: bold; color: #e2e8f0; margin-top: 4px; }
 
-/* Layout */
 .main-layout { display: flex; gap: 20px; }
 .sidebar { width: 300px; background-color: #1a1e24; padding: 20px; border-radius: 8px; border: 1px solid #2a313d; }
 .sidebar h3 { font-size: 0.9rem; color: #718096; margin-bottom: 15px; }
@@ -332,11 +325,14 @@ button:hover { background-color: #2c7a7b; }
 .content-area { flex: 1; }
 .card { background-color: #1a1e24; padding: 25px; border-radius: 8px; border: 1px solid #2a313d; }
 .card h3 { color: #319795; margin-bottom: 10px; }
+
+.dashboard-cards-preview { display: flex; gap: 15px; margin-top: 15px; }
+.preview-card { background-color: #0f1216; border: 1px solid #2a313d; border-radius: 6px; padding: 15px; flex: 1; text-align: center; }
+.preview-card span { font-size: 0.85rem; color: #a0aec0; }
+.preview-card h3 { margin-top: 5px; }
 """,
 
-    # -------------------------------------------------------------------------
-    # 7. LOGICA DE INTERACCIÓN EN EL CLIENTE (JAVASCRIPT)
-    # -------------------------------------------------------------------------
+    # 8. JAVASCRIPT
     "frontend/scripts/app.js": """
 let currentUserId = null;
 
@@ -410,6 +406,9 @@ async function loadMetrics() {
         updateMetricBar('economia', data.economia);
         updateMetricBar('congreso', data.congreso);
         updateMetricBar('corrupcion', data.corrupcion);
+
+        const prevAp = document.getElementById('prev-aprobacion');
+        if(prevAp) prevAp.innerText = `${Math.round(data.aprobacion)}%`;
     } catch(e) {
         console.error('Error cargando métricas:', e);
     }
@@ -423,13 +422,12 @@ function updateMetricBar(metricKey, value) {
         bar.style.width = `${valRounded}%`;
         valText.innerText = `${valRounded}%`;
         
-        // Cambiar color de barra según rendimiento
         if(valRounded < 30) {
-            bar.style.backgroundColor = '#e53e3e'; // Rojo (Crítico)
+            bar.style.backgroundColor = '#e53e3e';
         } else if(valRounded < 60) {
-            bar.style.backgroundColor = '#dd6b20'; // Naranja (Atención)
+            bar.style.backgroundColor = '#dd6b20';
         } else {
-            bar.style.backgroundColor = '#319795'; // Verde Presidencial (Estable)
+            bar.style.backgroundColor = '#319795';
         }
     }
 }
@@ -483,9 +481,8 @@ async function tomarDecision(dA, dE, dC, dCorr) {
                 delta_corrupcion: dCorr
             })
         });
-        const data = await res.json();
         if(res.ok) {
-            loadMetrics(); // Recargar barras con animación inmediata
+            loadMetrics();
         }
     } catch(e) {
         console.error('Error aplicando decisión:', e);
@@ -499,9 +496,7 @@ window.onload = () => {
 };
 """,
 
-    # -------------------------------------------------------------------------
-    # 8. ARCHIVOS DE DESPLIEGUE Y DEPENDENCIAS
-    # -------------------------------------------------------------------------
+    # 9. DEPENDENCIAS Y CONFIGURACIÓN RENDER
     "requirements.txt": """fastapi==0.110.0
 uvicorn==0.28.0
 pydantic==2.6.4
@@ -524,7 +519,6 @@ services:
     "README.md": "# Simulador de Entrenamiento Presidencial\nPlataforma de alta dirección de Estado con simulación de métricas en tiempo real."
 }
 
-# Ejecución para escribir los archivos en disco
 for filepath, content in files_content.items():
     dirname = os.path.dirname(filepath)
     if dirname:
@@ -532,4 +526,4 @@ for filepath, content in files_content.items():
     with open(filepath, "w", encoding="utf-8") as f:
         f.write(content)
 
-print("¡Archivos de actualización generados con éxito!")
+print("¡Archivos actualizados correctamente!")
